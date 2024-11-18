@@ -94,4 +94,4 @@ if uploaded_file is not None and not st.session_state['results_displayed']:
 # Add reset button
 if st.button("Reset Results"):
     st.session_state['results_displayed'] = False
-    st.experimental_rerun()
+    st.rerun()

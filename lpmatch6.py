@@ -1,6 +1,8 @@
+# Add SQLite fix at the very top
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import streamlit as st
 import pandas as pd
 from langchain_community.embeddings import OpenAIEmbeddings
@@ -10,8 +12,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
 import chromadb
 
-# Set your OpenAI API key here
-openai_api_key = st.secrets["OPENAI_API_KEY"]
+# Set OpenAI API key from Streamlit secrets
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 # App title and description
 st.title("LP Lead Scoring")
@@ -46,13 +48,13 @@ if uploaded_file is not None and not st.session_state['results_displayed']:
     try:
         # Read and process LP data
         df = pd.read_csv(uploaded_file)
-
+        
         # Create RAG system
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200
         )
-
+        
         # Prepare LP documents
         documents = []
         for _, row in df.iterrows():
@@ -65,23 +67,27 @@ if uploaded_file is not None and not st.session_state['results_displayed']:
             Geographic Preference: {row['geographic_preference']}
             """
             documents.append(content)
-
-        # Create embeddings and vector store
+        
+        # Create embeddings and vector store with persistence
         embeddings = OpenAIEmbeddings()
         texts = text_splitter.create_documents(documents)
+        
+        # Setup Chroma with persistence
         persist_directory = "./chroma_db"
-client_settings = chromadb.Settings(
-    chroma_db_impl="duckdb+parquet",
-    persist_directory=persist_directory,
-    anonymized_telemetry=False
-)
-vectorstore = Chroma.from_documents(
-    documents=texts,
-    embedding=embeddings,
-    persist_directory=persist_directory,
-    client_settings=client_settings
-)
-
+        client_settings = chromadb.Settings(
+            chroma_db_impl="duckdb+parquet",
+            persist_directory=persist_directory,
+            anonymized_telemetry=False
+        )
+        
+        # Create vectorstore
+        vectorstore = Chroma.from_documents(
+            documents=texts,
+            embedding=embeddings,
+            persist_directory=persist_directory,
+            client_settings=client_settings
+        )
+        
         # Create query from fund information
         query = f"""
         Find LPs that would be interested in:
@@ -90,19 +96,19 @@ vectorstore = Chroma.from_documents(
         - Investing in {', '.join(geographical_focus)}
         - With thesis: {thesis}
         """
-
+        
         # Retrieve and rank LPs
         similar_docs = vectorstore.similarity_search(query, k=5)
-
+        
         # Display results
         st.markdown("### Top LP Matches")
         for doc in similar_docs:
             st.text(doc.page_content)
             st.divider()
-
+        
         # Set flag to prevent duplicate display
         st.session_state['results_displayed'] = True
-
+            
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 

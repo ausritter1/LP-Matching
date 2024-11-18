@@ -8,6 +8,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
+import chromadb
 
 # Set your OpenAI API key here
 openai_api_key = st.secrets["OPENAI_API_KEY"]
@@ -68,7 +69,18 @@ if uploaded_file is not None and not st.session_state['results_displayed']:
         # Create embeddings and vector store
         embeddings = OpenAIEmbeddings()
         texts = text_splitter.create_documents(documents)
-        vectorstore = Chroma.from_documents(texts, embeddings)
+        persist_directory = "./chroma_db"
+client_settings = chromadb.Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory=persist_directory,
+    anonymized_telemetry=False
+)
+vectorstore = Chroma.from_documents(
+    documents=texts,
+    embedding=embeddings,
+    persist_directory=persist_directory,
+    client_settings=client_settings
+)
 
         # Create query from fund information
         query = f"""

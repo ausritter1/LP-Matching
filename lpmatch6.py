@@ -7,7 +7,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
 
 # Set your OpenAI API key here
-os.environ["OPENAI_API_KEY"] = "YOUR KEY HERE"
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # App title and description
 st.title("LP Lead Scoring")

@@ -92,9 +92,20 @@ if uploaded_file is not None and not st.session_state['results_displayed']:
         
         # Display results
         st.markdown("### Top LP Matches")
+        
+        # Create a set to track seen LP names
+        seen_lps = set()
+        
+        # Display unique results
         for doc in similar_docs:
-            st.text(doc.page_content)
-            st.divider()
+            # Extract LP name from the content
+            lp_name = [line for line in doc.page_content.split('\n') if 'LP Name:' in line][0]
+            
+            # Only display if we haven't seen this LP before
+            if lp_name not in seen_lps:
+                seen_lps.add(lp_name)
+                st.text(doc.page_content)
+                st.divider()
         
         # Set flag to prevent duplicate display
         st.session_state['results_displayed'] = True
